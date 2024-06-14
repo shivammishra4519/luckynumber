@@ -92,7 +92,7 @@ const saveWidInfo = async (req, res) => {
             const data = req.body;
 
             const lotteryArrya = data.lotteryArrya;
-            console.log(lotteryArrya.length)
+
             if (!lotteryArrya || lotteryArrya.lenght == 0) {
                 return res.status(400).json({ message: 'lottery details not found' })
             }
@@ -109,6 +109,50 @@ const saveWidInfo = async (req, res) => {
             const walletAmount = isWallet.amount;
             if (walletAmount < data.totalAmount) {
                 return res.status(400).json({ message: 'Insufficient balance' });
+            }
+            let adminAmmount;
+            const commissionCollection = db.collection('commession');
+            
+            if (isUser.referal) {
+                const getRefrel = await db.collection('users').findOne({ number: isUser.referal });
+                console.log('refrel',getRefrel)
+                const commission = await commissionCollection.findOne({ user: isUser.referal });
+                let CalculateCommission;
+               
+                if (commission) {
+                    const commession = commission.commession;
+                    CalculateCommission = ((data.amount) * (parseInt(commession))) / 100;
+             
+
+                } else {
+
+                    if (getRefrel) {
+                        const role = getComputedStyle.role;
+                        const forAllUser = await commissionCollection.findOne({ role: role });
+                        if (forAllUser) {
+                            const commession = forAllUser.commession;
+                            CalculateCommission = ((data.totalAmount) * (parseInt(commession))) / 100;
+                        } else {
+                            CalculateCommission = ((data.totalAmount) * (parseInt(0))) / 100;
+                        }
+                    }
+                }
+
+                if (getRefrel) {
+                    const refrelWallet=await wallets.findOne({userId: isUser.referal});
+                    const amount=refrelWallet.amount;
+                    const updateAmount=amount+CalculateCommission
+                    await wallets.findOneAndUpdate(
+                        { userId: isUser.referal },
+                        { $set: { amount: updateAmount } },
+                        { returnOriginal: false }
+                    );
+                    adminAmmount = data.totalAmount - CalculateCommission;
+                    console.log('calu',CalculateCommission)
+                    console.log(adminAmmount)
+                }
+
+
             }
 
             const newBalance = walletAmount - parseInt(data.totalAmount);
@@ -143,7 +187,8 @@ const saveWidInfo = async (req, res) => {
             }
 
             const adminBalance = adminWallet.amount;
-            const newBalanceAdmin = adminBalance + parseInt(data.totalAmount);
+            const newBalanceAdmin = adminBalance + parseInt(adminAmmount);
+            console.log('ds',adminAmmount)
             await wallets.findOneAndUpdate(
                 { userId: admin.number },
                 { $set: { amount: newBalanceAdmin } },
@@ -167,7 +212,7 @@ const saveWidInfo = async (req, res) => {
             }
 
 
-            return res.status(200).json({message:'Lotery Added'});
+            return res.status(200).json({ message: 'Lotery Added' });
         });
     } catch (error) {
         console.error('Error:', error);
@@ -493,7 +538,7 @@ const announceWinner = async (req, res) => {
                 { lotteryId: data.lotteryId },
                 { $set: { status: true, winnerNumber: data.luckyNumber } }
             );
-            
+
 
             // Find all wids on lottery
             const findAllWidsOnLottery = await collection.find({
@@ -603,7 +648,7 @@ const findLottery = async (req, res) => {
     }
 };
 
-const winnerList=async(req,res)=>{
+const winnerList = async (req, res) => {
     try {
         const authHeader = req.headers['authorization'];
 
@@ -626,7 +671,7 @@ const winnerList=async(req,res)=>{
             const number = decodedToken.number;
             const db = getDB();
             const collection = db.collection('winshistroy');
-            const result=await collection.find().toArray()
+            const result = await collection.find().toArray()
             res.status(200).json(result);
         });
     } catch (error) {
@@ -634,4 +679,4 @@ const winnerList=async(req,res)=>{
         res.status(500).json({ message: 'Internal server error' });
     }
 }
-module.exports = { addLottery, getAllLottery, saveWidInfo, findWidsForUser, lotteryStatus, findAllwids, findWidsOnNumber, announceWinner, findWidsForUser1, findLottery,winnerList };
+module.exports = { addLottery, getAllLottery, saveWidInfo, findWidsForUser, lotteryStatus, findAllwids, findWidsOnNumber, announceWinner, findWidsForUser1, findLottery, winnerList };
