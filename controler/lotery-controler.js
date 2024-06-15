@@ -115,7 +115,7 @@ const saveWidInfo = async (req, res) => {
             
             if (isUser.referal) {
                 const getRefrel = await db.collection('users').findOne({ number: isUser.referal });
-                console.log('refrel',getRefrel)
+                
                 const commission = await commissionCollection.findOne({ user: isUser.referal });
                 let CalculateCommission;
                
@@ -148,8 +148,7 @@ const saveWidInfo = async (req, res) => {
                         { returnOriginal: false }
                     );
                     adminAmmount = data.totalAmount - CalculateCommission;
-                    console.log('calu',CalculateCommission)
-                    console.log(adminAmmount)
+                   
                 }
 
 
@@ -188,7 +187,6 @@ const saveWidInfo = async (req, res) => {
 
             const adminBalance = adminWallet.amount;
             const newBalanceAdmin = adminBalance + parseInt(adminAmmount);
-            console.log('ds',adminAmmount)
             await wallets.findOneAndUpdate(
                 { userId: admin.number },
                 { $set: { amount: newBalanceAdmin } },
