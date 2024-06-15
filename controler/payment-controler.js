@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 
 require('dotenv').config();
 const secretKey = process.env.secretkey;
+const frontendUrl=process.env.frontendUrl;
 
 
 
@@ -65,7 +66,7 @@ const addMoney = async (req, res) => {
                 user_token: randomToken.token,
                 amount: data.amount,
                 order_id: ordId,
-                redirect_url: `http://localhost:4200/payment-success?data=${encodedData}`,
+                redirect_url: `${frontendUrl}payment-success?data=${encodedData}`,
                 remark1: result.name,
                 remark2: '',
             };
