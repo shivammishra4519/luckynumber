@@ -93,9 +93,10 @@ const saveWidInfo = async (req, res) => {
 
             const lotteryArrya = data.lotteryArrya;
 
-            if (!lotteryArrya || lotteryArrya.lenght == 0) {
-                return res.status(400).json({ message: 'lottery details not found' })
+            if (!lotteryArrya || lotteryArrya.length === 0) {
+                return res.status(400).json({ message: 'Lottery details not found' });
             }
+
             const isUser = await db.collection('users').findOne({ number });
             if (!isUser) {
                 return res.status(400).json({ message: 'Invalid User Id' });
@@ -110,51 +111,48 @@ const saveWidInfo = async (req, res) => {
             if (walletAmount < data.totalAmount) {
                 return res.status(400).json({ message: 'Insufficient balance' });
             }
-            let adminAmmount;
-            const commissionCollection = db.collection('commession');
-            
+
+            let adminAmount = data.totalAmount;
+            let refrelWallet, updateAmountRefrel, commissionForRefrer;
+
             if (isUser.referal) {
                 const getRefrel = await db.collection('users').findOne({ number: isUser.referal });
-                
-                const commission = await commissionCollection.findOne({ user: isUser.referal });
-                let CalculateCommission;
-               
-                if (commission) {
-                    const commession = commission.commession;
-                    CalculateCommission = ((data.amount) * (parseInt(commession))) / 100;
-             
-
-                } else {
-
-                    if (getRefrel) {
-                        const role = getComputedStyle.role;
-                        const forAllUser = await commissionCollection.findOne({ role: role });
-                        if (forAllUser) {
-                            const commession = forAllUser.commession;
-                            CalculateCommission = ((data.totalAmount) * (parseInt(commession))) / 100;
-                        } else {
-                            CalculateCommission = ((data.totalAmount) * (parseInt(0))) / 100;
-                        }
-                    }
-                }
 
                 if (getRefrel) {
-                    const refrelWallet=await wallets.findOne({userId: isUser.referal});
-                    const amount=refrelWallet.amount;
-                    const updateAmount=amount+CalculateCommission
-                    await wallets.findOneAndUpdate(
-                        { userId: isUser.referal },
-                        { $set: { amount: updateAmount } },
-                        { returnOriginal: false }
-                    );
-                    adminAmmount = data.totalAmount - CalculateCommission;
-                   
+                    const commission = await db.collection('commession').findOne({ user: isUser.referal });
+                    let CalculateCommission = 0;
+
+                    if (commission) {
+                        const commession = commission.commession;
+                        CalculateCommission = (data.totalAmount * parseInt(commession)) / 100;
+                    } else {
+                        const role = getRefrel.role;
+                        const forAllUser = await db.collection('commession').findOne({ role: role });
+                        if (forAllUser) {
+                            const commession = forAllUser.commession;
+                            CalculateCommission = (data.totalAmount * parseInt(commession)) / 100;
+                        }
+                    }
+
+                    refrelWallet = await wallets.findOne({ userId: isUser.referal });
+                    if (refrelWallet) {
+                        const amount = refrelWallet.amount;
+                        const updateAmount = amount + CalculateCommission;
+                        updateAmountRefrel = updateAmount;
+
+                        await wallets.findOneAndUpdate(
+                            { userId: isUser.referal },
+                            { $set: { amount: updateAmount } },
+                            { returnOriginal: false }
+                        );
+
+                        commissionForRefrer = CalculateCommission;
+                        adminAmount = data.totalAmount - CalculateCommission;
+                    }
                 }
-
-
             }
 
-            const newBalance = walletAmount - parseInt(data.totalAmount);
+            const newBalance = walletAmount - data.totalAmount;
             const userUpdateResult = await wallets.findOneAndUpdate(
                 { userId: number },
                 { $set: { amount: newBalance } },
@@ -186,7 +184,8 @@ const saveWidInfo = async (req, res) => {
             }
 
             const adminBalance = adminWallet.amount;
-            const newBalanceAdmin = adminBalance + parseInt(adminAmmount);
+            const newBalanceAdmin = adminBalance + adminAmount;
+
             await wallets.findOneAndUpdate(
                 { userId: admin.number },
                 { $set: { amount: newBalanceAdmin } },
@@ -195,28 +194,61 @@ const saveWidInfo = async (req, res) => {
 
             data.name = decodedToken.name;
             data.status = false;
-            const amount = data.amount
             data.number = number;
+
             for (let item of lotteryArrya) {
-                item.number = number,
-                    item.name = decodedToken.name;
-                item.amount = amount
+                item.number = number;
+                item.name = decodedToken.name;
+                item.amount = data.amount;
                 item.status = false;
+
                 const result = await collection.insertOne(item);
                 if (!result) {
                     return res.status(400).json({ message: 'Something went wrong' });
                 }
-
             }
 
+            const transHistory = {
+                senderOpening: walletAmount,
+                senderClosing: newBalance,
+                senderId: number,
+                receiverOpening: adminBalance,
+                receiverClosing: adminBalance+data.totalAmount,
+                receiverId: admin.number,
+                date: new Date(),
+                transactionId: generateTransactionId(15),
+                amount: data.totalAmount,
+                type: 'wid'
+            };
 
-            return res.status(200).json({ message: 'Lotery Added' });
+            const traHisCollection = db.collection('transectionHistory');
+            await traHisCollection.insertOne(transHistory);
+
+            if (refrelWallet) {
+                const transHistory1 = {
+                    senderOpening: adminBalance+data.totalAmount,
+                    senderClosing: (adminBalance+data.totalAmount)-commissionForRefrer,
+                    senderId: admin.number,
+                    receiverOpening: refrelWallet.amount,
+                    receiverClosing: updateAmountRefrel,
+                    receiverId: isUser.referal,
+                    date: new Date(),
+                    transactionId: generateTransactionId(15),
+                    amount: commissionForRefrer,
+                    type: 'commission'
+                };
+
+                await traHisCollection.insertOne(transHistory1);
+            }
+
+            return res.status(200).json({ message: 'Lottery Added' });
         });
     } catch (error) {
         console.error('Error:', error);
         return res.status(500).json({ message: 'Internal server error' });
     }
 };
+
 
 
 
@@ -676,5 +708,18 @@ const winnerList = async (req, res) => {
         console.error('Error:', error);
         res.status(500).json({ message: 'Internal server error' });
     }
+}
+
+function generateTransactionId(length) {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let result = '';
+
+    // Generate the remaining part of the ID
+    for (let i = 0; i < length; i++) {
+        const randomIndex = Math.floor(Math.random() * characters.length);
+        result += characters[randomIndex];
+    }
+
+    return result;
 }
 module.exports = { addLottery, getAllLottery, saveWidInfo, findWidsForUser, lotteryStatus, findAllwids, findWidsOnNumber, announceWinner, findWidsForUser1, findLottery, winnerList };
