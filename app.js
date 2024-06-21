@@ -8,7 +8,10 @@ const userRoute=require('./route/user-route');
 const lotteryRoute=require('./route/lottery-route');
 const payment=require('./route/payment-route');
 const transection=require('./route/transection-route');
-connectToDB();
+
+connectToDB().then(()=>{
+    // const timeSedule=require('./automode/timesedule');
+});
 const port = process.env.PORT || 3600;
 const app = express();
 

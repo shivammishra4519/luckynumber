@@ -213,7 +213,7 @@ const saveWidInfo = async (req, res) => {
                 senderClosing: newBalance,
                 senderId: number,
                 receiverOpening: adminBalance,
-                receiverClosing: adminBalance+data.totalAmount,
+                receiverClosing: adminBalance + data.totalAmount,
                 receiverId: admin.number,
                 date: new Date(),
                 transactionId: generateTransactionId(15),
@@ -226,8 +226,8 @@ const saveWidInfo = async (req, res) => {
 
             if (refrelWallet) {
                 const transHistory1 = {
-                    senderOpening: adminBalance+data.totalAmount,
-                    senderClosing: (adminBalance+data.totalAmount)-commissionForRefrer,
+                    senderOpening: adminBalance + data.totalAmount,
+                    senderClosing: (adminBalance + data.totalAmount) - commissionForRefrer,
                     senderId: admin.number,
                     receiverOpening: refrelWallet.amount,
                     receiverClosing: updateAmountRefrel,
@@ -722,4 +722,103 @@ function generateTransactionId(length) {
 
     return result;
 }
-module.exports = { addLottery, getAllLottery, saveWidInfo, findWidsForUser, lotteryStatus, findAllwids, findWidsOnNumber, announceWinner, findWidsForUser1, findLottery, winnerList };
+
+
+const updateStatus = async (req, res) => {
+    try {
+        
+        const authHeader = req.headers['authorization'];
+
+        if (!authHeader) {
+            return res.status(401).json({ error: 'Unauthorized: Authorization header missing' });
+        }
+
+        const token = authHeader.split(' ')[1];
+
+        if (!token) {
+            return res.status(401).json({ error: 'Unauthorized: Token missing' });
+        }
+
+        jwt.verify(token, secretKey, async (err, decodedToken) => {
+            if (err) {
+                return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+            }
+
+            const db = getDB();
+            const collection = db.collection('lottery');
+            const data = req.body;
+
+            // Check if lotteryId is present in request body
+            if (!data.lotteryId) {
+                return res.status(400).json({ message: 'Lottery ID is required' });
+            }
+
+            // Check if status is present in request body
+          
+
+            // Update status for the given lotteryId
+            const filter = { lotteryId: data.lotteryId };
+            const updateDoc = {
+                $set: {
+                    status: data.status,
+                    updateAt:new Date()
+                }
+            };
+
+            const result = await collection.updateOne(filter, updateDoc);
+
+            if (result.modifiedCount === 0) {
+                return res.status(404).json({ message: 'Lottery ID not found' });
+            }
+
+            return res.status(200).json({ message: 'Lottery status updated successfully' });
+        });
+
+    } catch (error) {
+        console.error('Error updating lottery status:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
+const allRuningLottery = async (req, res) => {
+    try {
+        const authHeader = req.headers['authorization'];
+
+        if (!authHeader) {
+            return res.status(401).json({ error: 'Unauthorized: Authorization header missing' });
+        }
+
+        const token = authHeader.split(' ')[1];
+
+        if (!token) {
+            return res.status(401).json({ error: 'Unauthorized: Token missing' });
+        }
+
+        // Verify JWT token
+        jwt.verify(token, secretKey, async (err, decodedToken) => {
+            if (err) {
+                return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+            }
+
+            try {
+                const db = getDB();
+                const collection = db.collection('lottery');
+
+                // Fetch all lotteries with status: true
+                const result = await collection.find({ status: true }).toArray();
+
+                return res.status(200).json(result);
+            } catch (error) {
+                console.error('Error fetching running lotteries:', error);
+                return res.status(500).json({ error: 'Internal server error' });
+            }
+        });
+
+    } catch (error) {
+        console.error('Error updating lottery status:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+}
+
+
+module.exports = { addLottery, getAllLottery, saveWidInfo, findWidsForUser, lotteryStatus, findAllwids, findWidsOnNumber, announceWinner, findWidsForUser1, findLottery, winnerList,updateStatus,allRuningLottery };

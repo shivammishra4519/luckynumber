@@ -14,4 +14,6 @@ router.post('/find/wids/user',lottery.findWidsForUser1);
 router.post('/find/lottery',lottery.findLottery);
 router.post('/announce/winner',lottery.announceWinner);
 router.post('/list/winner',lottery.winnerList);
+router.post('/update/status',lottery.updateStatus);
+router.post('/allruning/lottery',lottery.allRuningLottery);
 module.exports=router
