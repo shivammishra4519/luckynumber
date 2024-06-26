@@ -8,6 +8,7 @@ const userRoute=require('./route/user-route');
 const lotteryRoute=require('./route/lottery-route');
 const payment=require('./route/payment-route');
 const transection=require('./route/transection-route');
+const wallet=require('./route/wallet-route');
 
 connectToDB().then(()=>{
     // const timeSedule=require('./automode/timesedule');
@@ -23,6 +24,7 @@ app.use('/user',userRoute);
 app.use('/lottery',lotteryRoute);
 app.use('/api',payment);
 app.use('/api',transection);
+app.use('/wallet',wallet);
 
 
 
