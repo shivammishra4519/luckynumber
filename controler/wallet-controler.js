@@ -265,8 +265,9 @@ const getAllBank = async (req, res) => {
             const userId = process.env.USERID;
             const tokenid = process.env.TOKENID;
             const urlEndPoint = process.env.URL;
-            const url = `${urlEndPoint}DMT/Bank_name`;
 
+            const url = `${urlEndPoint}DMT/Bank_name`;
+            console.log('url', url);
             const obj = {
                 Userid: userId,
                 Tokenid: tokenid,
@@ -274,6 +275,7 @@ const getAllBank = async (req, res) => {
 
             try {
                 const response = await axios.post(url, obj);
+                console.log('response',response)
                 const result = response.data;
 
 
@@ -389,7 +391,7 @@ const fundWithdraw = async (req, res) => {
 
             try {
                 const response = await axios.post(url, obj);
-                
+
                 const result = response.data;
 
                 const fundHistoryEntry = {
@@ -682,8 +684,8 @@ const callBackApi = async (req, res) => {
         const data = req.query;
         const Transid = data.rchid;
         const remainbal = data.remainbal;
-        const Operatorid=data.operatorid;
-    
+        const Operatorid = data.operatorid;
+
         const db = getDB();
         const collection = db.collection('fundhistory'); // Specify the collection name
         const walletsCollection = db.collection('wallets');
@@ -693,7 +695,7 @@ const callBackApi = async (req, res) => {
         if (existingTransaction.status !== 'Pending') {
             return res.status(400).json({ message: 'This Transection Already Upadted' });
         }
-        
+
         if (!existingTransaction) {
             return res.status(400).json({ message: 'Invalid Transaction Id' });
         }
@@ -701,7 +703,7 @@ const callBackApi = async (req, res) => {
         if (data.Status === 'Success') {
             await collection.updateOne(
                 { Transid },
-                { $set: { status: 'Success', message: 'Transaction Successful' ,rrn:Operatorid,remainingBalance:remainbal} }
+                { $set: { status: 'Success', message: 'Transaction Successful', rrn: Operatorid, remainingBalance: remainbal } }
             );
             return res.status(200).json({
                 status: 'Success',
@@ -763,7 +765,7 @@ const callBackApi = async (req, res) => {
 
             await collection.updateOne(
                 { Transid },
-                { $set: { status: 'Failed', message: 'Transaction Failed' ,rrn:Operatorid,remainingBalance:remainbal} }
+                { $set: { status: 'Failed', message: 'Transaction Failed', rrn: Operatorid, remainingBalance: remainbal } }
             );
             return res.status(200).json({
                 status: 'Failed',
@@ -779,4 +781,4 @@ const callBackApi = async (req, res) => {
 };
 
 
-module.exports = { verifiyNumber, registerRemitter, verifyOtp, getAllBank, addAccount, getAccounts, fundWithdraw, allFundTransferHistory, statusCheck,callBackApi };
+module.exports = { verifiyNumber, registerRemitter, verifyOtp, getAllBank, addAccount, getAccounts, fundWithdraw, allFundTransferHistory, statusCheck, callBackApi };
