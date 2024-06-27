@@ -566,7 +566,6 @@ const statusCheck = async (req, res) => {
             const tokenid = process.env.TOKENID;
             const urlEndPoint = process.env.URL;
             const url = `${urlEndPoint}DMT/statuscheck`;
-
             const obj = {
                 Userid: userId,
                 Tokenid: tokenid,
