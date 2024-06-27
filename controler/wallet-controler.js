@@ -639,7 +639,7 @@ const statusCheck = async (req, res) => {
                             date: new Date(),
                             transactionId: generateTransactionId(15),
                             amount: parseInt(amount) + 5,
-                            type: 'withdraw'
+                            type: 'refund'
                         };
 
                         await db.collection('transactionHistory').insertOne(transactionHistory);
