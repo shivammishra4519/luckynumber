@@ -267,7 +267,7 @@ const getAllBank = async (req, res) => {
             const urlEndPoint = process.env.URL;
 
             const url = `${urlEndPoint}DMT/Bank_name`;
-            console.log('url', url);
+            
             const obj = {
                 Userid: userId,
                 Tokenid: tokenid,
@@ -275,7 +275,7 @@ const getAllBank = async (req, res) => {
 
             try {
                 const response = await axios.post(url, obj);
-                console.log('response',response)
+               
                 const result = response.data;
 
 
@@ -680,8 +680,9 @@ const statusCheck = async (req, res) => {
 
 const callBackApi = async (req, res) => {
     try {
-        console.log('lll')
+        
         const data = req.query;
+        console.log("data",data)
         const Transid = data.rchid;
         const remainbal = data.remainbal;
         const Operatorid = data.operatorid;
@@ -691,7 +692,7 @@ const callBackApi = async (req, res) => {
         const walletsCollection = db.collection('wallets');
 
         const existingTransaction = await collection.findOne({ Transid });
-        console.log(existingTransaction)
+       
         if (existingTransaction.status !== 'Pending') {
             return res.status(400).json({ message: 'This Transection Already Upadted' });
         }
