@@ -594,7 +594,7 @@ const statusCheck = async (req, res) => {
                         });
                     } else if (result.data.Status === 'FAILED') {
                         const amount = existingTransaction.amount;
-                        const wallet = await walletsCollection.findOne({ userId: decodedToken.userId });
+                        const wallet = await walletsCollection.findOne({ userId: decodedToken.number });
 
                         if (!wallet) {
                             return res.status(400).json({ message: 'User wallet not found' });
@@ -602,14 +602,14 @@ const statusCheck = async (req, res) => {
 
                         const newBalance = wallet.amount + parseInt(amount) + 5;
                         await walletsCollection.updateOne(
-                            { userId },
+                            { userId: decodedToken.number  },
                             { $set: { amount: newBalance } }
                         );
 
                         const admin = await db.collection('users').findOne({ role: 'admin' });
                         if (!admin) {
                             await walletsCollection.updateOne(
-                                { userId },
+                                { userId: decodedToken.number  },
                                 { $set: { amount: wallet.amount } }
                             );
                             return res.status(400).json({ message: 'Something went wrong, contact Admin' });
@@ -618,7 +618,7 @@ const statusCheck = async (req, res) => {
                         const adminWallet = await walletsCollection.findOne({ userId: admin.number });
                         if (!adminWallet) {
                             await walletsCollection.updateOne(
-                                { userId },
+                                { userId: decodedToken.number  },
                                 { $set: { amount: wallet.amount } }
                             );
                             return res.status(400).json({ message: 'Contact Admin' });
@@ -683,7 +683,7 @@ const callBackApi = async (req, res) => {
         
         const data = req.query;
         console.log("data",data)
-        const Transid = data.rchid;
+        const apiOrderId = data.rchid;
         const remainbal = data.remainbal;
         const Operatorid = data.operatorid;
 
@@ -691,7 +691,7 @@ const callBackApi = async (req, res) => {
         const collection = db.collection('fundhistory'); // Specify the collection name
         const walletsCollection = db.collection('wallets');
 
-        const existingTransaction = await collection.findOne({ Transid });
+        const existingTransaction = await collection.findOne({ apiOrderId });
        
         if (existingTransaction.status !== 'Pending') {
             return res.status(400).json({ message: 'This Transection Already Upadted' });
@@ -703,7 +703,7 @@ const callBackApi = async (req, res) => {
 
         if (data.Status === 'Success') {
             await collection.updateOne(
-                { Transid },
+                { apiOrderId },
                 { $set: { status: 'Success', message: 'Transaction Successful', rrn: Operatorid, remainingBalance: remainbal } }
             );
             return res.status(200).json({
@@ -765,7 +765,7 @@ const callBackApi = async (req, res) => {
             await db.collection('transectionHistory').insertOne(transactionHistory);
 
             await collection.updateOne(
-                { Transid },
+                { apiOrderId },
                 { $set: { status: 'Failed', message: 'Transaction Failed', rrn: Operatorid, remainingBalance: remainbal } }
             );
             return res.status(200).json({
