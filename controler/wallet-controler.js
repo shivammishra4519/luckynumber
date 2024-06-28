@@ -406,50 +406,52 @@ const fundWithdraw = async (req, res) => {
 
                 await fundHistoryCollection.insertOne(fundHistoryEntry);
 
-                const newBalance = wallet.amount - (parseInt(amount) + 5);
-                await walletsCollection.updateOne(
-                    { userId },
-                    { $set: { amount: newBalance } }
-                );
-
-                const admin = await db.collection('users').findOne({ role: 'admin' });
-                if (!admin) {
+                if (result.Status === 'Success' || result.Status === 'Pending') {
+                    const newBalance = wallet.amount - (parseInt(amount) + 5);
                     await walletsCollection.updateOne(
                         { userId },
-                        { $set: { amount: wallet.amount } }
+                        { $set: { amount: newBalance } }
                     );
-                    return res.status(400).json({ message: 'Something went wrong, contact Admin' });
-                }
 
-                const adminWallet = await walletsCollection.findOne({ userId: admin.number });
-                if (!adminWallet) {
+                    const admin = await db.collection('users').findOne({ role: 'admin' });
+                    if (!admin) {
+                        await walletsCollection.updateOne(
+                            { userId },
+                            { $set: { amount: wallet.amount } }
+                        );
+                        return res.status(400).json({ message: 'Something went wrong, contact Admin' });
+                    }
+
+                    const adminWallet = await walletsCollection.findOne({ userId: admin.number });
+                    if (!adminWallet) {
+                        await walletsCollection.updateOne(
+                            { userId },
+                            { $set: { amount: wallet.amount } }
+                        );
+                        return res.status(400).json({ message: 'Contact Admin' });
+                    }
+
+                    const newAdminBalance = adminWallet.amount + parseInt(amount) + 5;
                     await walletsCollection.updateOne(
-                        { userId },
-                        { $set: { amount: wallet.amount } }
+                        { userId: admin.number },
+                        { $set: { amount: newAdminBalance } }
                     );
-                    return res.status(400).json({ message: 'Contact Admin' });
+
+                    const transactionHistory = {
+                        senderOpening: adminWallet.amount,
+                        senderClosing: newAdminBalance,
+                        senderId: admin.number,
+                        receiverOpening: wallet.amount,
+                        receiverClosing: newBalance,
+                        receiverId: userId,
+                        date: new Date(),
+                        transactionId: generateTransactionId(15),
+                        amount: parseInt(amount) + 5,
+                        type: 'withdraw'
+                    };
+
+                    await transactionHistoryCollection.insertOne(transactionHistory);
                 }
-
-                const newAdminBalance = adminWallet.amount + parseInt(amount) + 5;
-                await walletsCollection.updateOne(
-                    { userId: admin.number },
-                    { $set: { amount: newAdminBalance } }
-                );
-
-                const transactionHistory = {
-                    senderOpening: adminWallet.amount,
-                    senderClosing: newAdminBalance,
-                    senderId: admin.number,
-                    receiverOpening: wallet.amount,
-                    receiverClosing: newBalance,
-                    receiverId: userId,
-                    date: new Date(),
-                    transactionId: generateTransactionId(15),
-                    amount: parseInt(amount) + 5,
-                    type: 'withdraw'
-                };
-
-                await transactionHistoryCollection.insertOne(transactionHistory);
 
                 if (result.Status === 'Success') {
                     return res.status(200).json({
@@ -486,6 +488,7 @@ const fundWithdraw = async (req, res) => {
         return res.status(500).json({ error: 'Internal server error' });
     }
 };
+
 
 
 
