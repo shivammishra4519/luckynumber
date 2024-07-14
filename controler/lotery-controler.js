@@ -554,6 +554,7 @@ const announceWinner = async (req, res) => {
                     return res.status(400).json({ message: 'Admin wallet not found' });
                 }
 
+
                 const adminBalance = adminWallet.amount;
                 const newBalanceAdmin = adminBalance - parseInt(winingAmount);
                 await wallets.findOneAndUpdate(
@@ -561,6 +562,21 @@ const announceWinner = async (req, res) => {
                     { $set: { amount: newBalanceAdmin } },
                     { returnOriginal: false }
                 );
+                const transHistory = {
+                    senderOpening: adminWallet.amount,
+                    senderClosing: newBalanceAdmin,
+                    senderId: admin.number,
+                    receiverOpening: crAmount,
+                    receiverClosing: updateAmount,
+                    receiverId: userId,
+                    date: new Date(), // Assuming 'date' should be the current date
+                    transactionId: generateTransactionId(15),
+                    amount: winingAmount,
+                    type: 'winner'
+                };
+
+                const traHisCollection = db.collection('transectionHistory');
+                await traHisCollection.insertOne(transHistory);
             }
 
             // Update status for all documents with the specified lotteryId
@@ -726,7 +742,7 @@ function generateTransactionId(length) {
 
 const updateStatus = async (req, res) => {
     try {
-        
+
         const authHeader = req.headers['authorization'];
 
         if (!authHeader) {
@@ -754,14 +770,14 @@ const updateStatus = async (req, res) => {
             }
 
             // Check if status is present in request body
-          
+
 
             // Update status for the given lotteryId
             const filter = { lotteryId: data.lotteryId };
             const updateDoc = {
                 $set: {
                     status: data.status,
-                    updateAt:new Date()
+                    updateAt: new Date()
                 }
             };
 
@@ -821,4 +837,4 @@ const allRuningLottery = async (req, res) => {
 }
 
 
-module.exports = { addLottery, getAllLottery, saveWidInfo, findWidsForUser, lotteryStatus, findAllwids, findWidsOnNumber, announceWinner, findWidsForUser1, findLottery, winnerList,updateStatus,allRuningLottery };
+module.exports = { addLottery, getAllLottery, saveWidInfo, findWidsForUser, lotteryStatus, findAllwids, findWidsOnNumber, announceWinner, findWidsForUser1, findLottery, winnerList, updateStatus, allRuningLottery };
