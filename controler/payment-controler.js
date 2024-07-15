@@ -375,7 +375,13 @@ const checkPaymentStatus = async (req, res) => {
             }
             const data = req.body;
             console.log(data)
-            const response = await checkOrderStatus(data.order_id,data.user_token);
+            const db=getDB();
+            const collection=db.collection('onlinePayments');
+            const result=await collection.findOne({order_id:data.order_id})
+            if(!result){
+                return res.status(400).json({message:'invalid orderid'})
+            }
+            const response = await checkOrderStatus(data.order_id,result.user_token);
             if (response.status == 'COMPLETED') {
                 return res.status(200).json(response);
             }
