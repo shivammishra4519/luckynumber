@@ -389,6 +389,7 @@ const checkPaymentStatus = async (req, res) => {
 
 
 async function checkOrderStatus(order_id,user_token) {
+    console.log("data in body",order_id,user_token)
     const url = 'https://mobilefinder.store/api/check-order-status';
     const data1 = {
         "user_token": user_token,
